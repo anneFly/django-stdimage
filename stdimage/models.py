@@ -65,8 +65,11 @@ class StdImageFieldFile(ImageFieldFile):
         file_buffer = BytesIO()
         format = self.get_file_extension(name).lower().replace('jpg', 'jpeg')
         img.save(file_buffer, format)
+        if self.storage.exists(variation_name):
+            self.storage.delete(variation_name)
         self.storage.save(variation_name, ContentFile(file_buffer.getvalue()))
         file_buffer.close()
+        return variation_name
 
     @classmethod
     def get_variation_name(cls, file_name, variation_name):
@@ -87,10 +90,13 @@ class StdImageFieldFile(ImageFieldFile):
         return filename_split[-1]
 
     def delete(self, save=True):
+        self.delete_variations()
+        super(StdImageFieldFile, self).delete(save)
+
+    def delete_variations(self):
         for variation in self.field.variations:
             variation_name = self.get_variation_name(self.name, variation)
             self.storage.delete(variation_name)
-        super(StdImageFieldFile, self).delete(save)
 
 
 class StdImageField(ImageField):
@@ -177,7 +183,7 @@ try:
             "min_size": ["min_size", {"default": None}],
             "max_size": ["max_size", {"default": None}],
         },), ],
-        ["^stdimage\.fields\.StdImageField"]
+        ["^stdimage\.models\.StdImageField"]
     )
 except ImportError:
     pass
