@@ -23,3 +23,4 @@ class Command(BaseCommand):
                 for name, variation in field.variations.items():
                     variation_file_name = field_file.render_and_save_variation(field_file.name, field_file, variation)
                     self.stdout.write("--> %s: %s" % (name, variation_file_name))
+                field_file.close()

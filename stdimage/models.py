@@ -46,29 +46,28 @@ class StdImageFieldFile(ImageFieldFile):
 
         resample = variation['resample']
 
-        img = Image.open(content)
+        with Image.open(content) as img:
 
-        if self.is_smaller(img, variation):
-            factor = 1
-            while (img.size[0] / factor > 2 * variation['width'] and
-                                   img.size[1] * 2 / factor > 2 * variation['height']):
-                factor *= 2
-            if factor > 1:
-                img.thumbnail((int(img.size[0] / factor),
-                               int(img.size[1] / factor)), resample=resample)
+            if self.is_smaller(img, variation):
+                factor = 1
+                while (img.size[0] / factor > 2 * variation['width'] and
+                                       img.size[1] * 2 / factor > 2 * variation['height']):
+                    factor *= 2
+                if factor > 1:
+                    img.thumbnail((int(img.size[0] / factor),
+                                   int(img.size[1] / factor)), resample=resample)
 
-            if variation['crop']:
-                img = ImageOps.fit(img, (variation['width'], variation['height']), method=resample)
-            else:
-                img.thumbnail((variation['width'], variation['height']), resample=resample)
-        variation_name = self.get_variation_name(self.name, variation['name'])
-        file_buffer = BytesIO()
-        format = self.get_file_extension(name).lower().replace('jpg', 'jpeg')
-        img.save(file_buffer, format)
-        if self.storage.exists(variation_name):
-            self.storage.delete(variation_name)
-        self.storage.save(variation_name, ContentFile(file_buffer.getvalue()))
-        file_buffer.close()
+                if variation['crop']:
+                    img = ImageOps.fit(img, (variation['width'], variation['height']), method=resample)
+                else:
+                    img.thumbnail((variation['width'], variation['height']), resample=resample)
+            variation_name = self.get_variation_name(self.name, variation['name'])
+            with BytesIO() as file_buffer:
+                format = self.get_file_extension(name).lower().replace('jpg', 'jpeg')
+                img.save(file_buffer, format)
+                if self.storage.exists(variation_name):
+                    self.storage.delete(variation_name)
+                self.storage.save(variation_name, ContentFile(file_buffer.getvalue()))
         return variation_name
 
     @classmethod
