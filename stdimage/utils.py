@@ -10,7 +10,7 @@ from .models import StdImageField
 
 class UploadTo(object):
     file_pattern = "%(name)s.%(ext)s"
-    path_pattern = "%(path)"
+    path_pattern = "%(path)s"
 
     def __call__(self, instance, filename):
         defaults = {
@@ -38,7 +38,7 @@ class UploadToUUID(UploadTo):
 
 
 class UploadToClassNameDir(UploadTo):
-    path_pattern = '%(class_name)'
+    path_pattern = '%(class_name)s'
 
 
 class UploadToClassNameDirUUID(UploadToClassNameDir, UploadToUUID):
