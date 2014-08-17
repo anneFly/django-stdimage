@@ -1,8 +1,21 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, unicode_literals)
+import resource
 
 from django.core.management import BaseCommand
 from django.db.models import get_model
+import progressbar
+
+
+class MemoryUsageWidget(progressbar.ProgressBarWidget):
+    def update(self, pbar):
+        return 'RAM: {:10.1f} MB'.format(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+
+
+class CurrentInstanceWidget(progressbar.ProgressBarWidgetHFill):
+
+    def update(self, pbar, width):
+        return 'Object: {}@pk={}'.format(pbar.instance, pbar.instance.pk)
 
 
 class Command(BaseCommand):
@@ -11,16 +24,34 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         for route in args:
+            pk = None
             app_name, model_name, field_name = route.rsplit('.')
+            if '@' in field_name:
+                field_name, pk = field_name.split('@', 1)
             model_class = get_model(app_name, model_name)
-            queryset = model_class.objects\
-                .exclude(**{"%s__isnull" % field_name: True})\
-                .exclude(**{field_name: ''})
+            queryset = model_class.objects \
+                .exclude(**{'%s__isnull' % field_name: True}) \
+                .exclude(**{field_name: ''})\
+                .order_by('pk')
+            if pk:
+                queryset = queryset.filter(pk__gte=pk)
+            total = queryset.count()
+            prog = progressbar.ProgressBar(maxval=total, widgets=(
+                progressbar.RotatingMarker(),
+                ' | ', MemoryUsageWidget(),
+                ' | ', progressbar.ETA(),
+                ' | ', progressbar.Percentage(),
+                ' ', progressbar.Bar(),
+                ' ', CurrentInstanceWidget(),
+            ))
+            i = 0
             for instance in queryset:
                 field_file = getattr(instance, field_name)
                 field = field_file.field
-                self.stdout.write('Rendering variations for "%s" using file: %s' % (instance, field_file))
+                prog.instance = instance
+                prog.update(i)
                 for name, variation in field.variations.items():
                     variation_file_name = field_file.render_and_save_variation(field_file.name, field_file, variation)
-                    self.stdout.write("--> %s: %s" % (name, variation_file_name))
                 field_file.close()
+                i += 1
+            prog.finish()
