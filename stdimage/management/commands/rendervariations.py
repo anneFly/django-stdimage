@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import (absolute_import, unicode_literals)
 import resource
+import gc
 
 from django.core.management import BaseCommand
 from django.db.models import get_model
@@ -51,7 +52,8 @@ class Command(BaseCommand):
                 prog.instance = instance
                 prog.update(i)
                 for name, variation in field.variations.items():
-                    variation_file_name = field_file.render_and_save_variation(field_file.name, field_file, variation)
+                    field_file.render_and_save_variation(field_file.name, field_file, variation)
                 field_file.close()
+                gc.collect()
                 i += 1
             prog.finish()
