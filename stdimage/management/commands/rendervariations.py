@@ -54,6 +54,7 @@ class Command(BaseCommand):
                 for name, variation in field.variations.items():
                     field_file.render_and_save_variation(field_file.name, field_file, variation)
                 field_file.close()
+                del field_file
                 gc.collect()
                 i += 1
             prog.finish()
