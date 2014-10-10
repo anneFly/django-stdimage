@@ -1,6 +1,12 @@
+# -*- coding: utf-8 -*-
+from __future__ import (unicode_literals, absolute_import)
+
 import warnings
-from .models import StdImageField
+
+from . import StdImageField as ModelField
 
 
-warnings.warn(DeprecationWarning("This module has been been deprecated."
-                                 " Please use stdimage.models.StdImageField instead."))
+class StdImageField(ModelField):
+    def __init__(self, *args, **kwargs):
+        super(StdImageField, self).__init__(*args, **kwargs)
+        warnings.warn(DeprecationWarning('StdImageField has moved into a the model module.'))

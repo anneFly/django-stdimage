@@ -38,7 +38,7 @@ class StdImageFieldFile(ImageFieldFile):
     def is_smaller(img, variation):
         return img.size[0] > variation['width'] or img.size[1] > variation['height']
 
-    def render_and_save_variation(self, name, content, variation):
+    def render_and_save_variation(self, name, content, variation, replace=False):
         """
         Renders the image variations and saves them to the storage
         """
@@ -63,10 +63,13 @@ class StdImageFieldFile(ImageFieldFile):
                     img.thumbnail((variation['width'], variation['height']), resample=resample)
             variation_name = self.get_variation_name(self.name, variation['name'])
             with BytesIO() as file_buffer:
-                format = self.get_file_extension(name).lower().replace('jpg', 'jpeg')
+                format = self.get_file_extension(name).upper().replace('JPG', 'JPEG')
                 img.save(file_buffer, format)
                 if self.storage.exists(variation_name):
-                    self.storage.delete(variation_name)
+                    if replace:
+                        self.storage.delete(variation_name)
+                    else:
+                        return variation_name
                 self.storage.save(variation_name, ContentFile(file_buffer.getvalue()))
         return variation_name
 
@@ -136,8 +139,6 @@ class StdImageField(ImageField):
         super(StdImageField, self).__init__(verbose_name, name, *args, **kwargs)
 
     def add_variation(self, name, params):
-        if params is None:
-            return
         variation = self.def_variation.copy()
         if isinstance(params, (list, tuple)):
             variation.update(dict(zip(("width", "height", "crop"), params)))
@@ -179,8 +180,6 @@ try:
     add_introspection_rules(
         [([StdImageField], [], {
             "variations": ["variations", {"default": None}],
-            "min_size": ["min_size", {"default": None}],
-            "max_size": ["max_size", {"default": None}],
         },), ],
         ["^stdimage\.models\.StdImageField"]
     )
